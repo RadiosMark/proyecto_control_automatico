@@ -7,10 +7,10 @@ class UAV:
         self.long_brazo = 5
 
     def brazo_derecho(self):
-        return(self.pos[0]-self.long_brazo*5, 400)
+        return(self.pos[0]-self.long_brazo*5, self.pos[1])
 
     def brazo_izquierdo(self):
-        return(self.pos[0]+self.long_brazo*5, 400)
+        return(self.pos[0]+self.long_brazo*5, self.pos[1])
 
     def draw(self, dest):
         x = int(self.pos[0])
@@ -37,15 +37,20 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 simulacion = False
-            if event.type == pygame.K_UP:
-                uav.pos[1]+=10
-            if event.type == pygame.K_DOWN:
-                uav.pos[1]-=10
-            if event.type == pygame.K_RIGHT:
-                uav.pos[0]+=10
-            if event.type == pygame.K_LEFT:
-                uav.pos[0]-=10
-    
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_w:
+                    uav.pos[1]-=10
+                    print("arriba")
+                if event.key == pygame.K_s:
+                    uav.pos[1]+=10
+                    print("abajo")
+                if event.key == pygame.K_d:
+                    uav.pos[0]+=10
+                    print("derecha")
+                if event.key == pygame.K_a:
+                    uav.pos[0]-=10
+                    print("izquierda")
+        
             ventana.fill((0,0,0))
             uav.draw(ventana)
             pygame.display.flip()
