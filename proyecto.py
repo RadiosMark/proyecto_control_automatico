@@ -56,6 +56,7 @@ def dif_eq(x, t):
     return x_d
 
 sol_x = odeint(dif_eq , x , t)
+print(sol_x)
 
 
 
