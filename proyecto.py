@@ -3,7 +3,7 @@ from cmath import rect
 from turtle import position
 import pygame, sys
 from scipy.integrate import odeint
-import numpy as np
+from numpy import *
 
 def der_x(U,V,theta): return U*(np.cos(theta))- V*(np.sin(theta))
 
@@ -14,12 +14,12 @@ theta0 = 0
 
 x1 = 0 # x pos
 x2 = 0  # y pos
-x3 = np.pi/2 # theta
+x3 = pi/2 # theta
 x4 = 0 # U 
 x5 = 0 # V
 x6 = 0 # w
 
-x = [x1,x2,x3,x4,x5,x6]
+x = [x3,x4,x5,x6]
 
 #constants
 m = 10
@@ -34,7 +34,7 @@ I = 0.1 #kgm2
 
 ti = 0.0
 Ts = 0.010
-t = np.linspace(ti, Ts, 2)
+t = linspace(ti, Ts, 2)
 
 # control_variables
 
@@ -46,13 +46,11 @@ fr = 0
 def dif_eq(x, t):
     global bw, bv, bu, g, I, l, fl, fr, m
 
-    x1_d =x[3]*np.cos(x[2]) - x[4]*np.sin(x[2])
-    x2_d = x[3]*np.sin(x[2]) + x[4]*np.cos(x[2])
-    x3_d = x[5]
-    x4_d = x[5]*x[4]+(1/m)*(fr+fl)-(bu/m)*x[3]-g*np.sin(x[2])
-    x5_d = -x[5]*x[3]-(bv/m)*x[4]-g*np.cos(x[2])
-    x6_d = -(bw/I)+(l/(2*I))*(fr-fl)
-    x_d = [x1_d,x2_d,x3_d,x4_d,x5_d,x6_d]
+    x0_d = x[3] # theta 0
+    x1_d = x[3]*x[2]+(1/m)*(fr+fl)-(bu/m)*x[1]-g*sin(x[0]) # u 1
+    x2_d = -x[3]*x[1]-(bv/m)*x[2]-g*cos(x[0]) # v 2
+    x3_d = -(bw/I)*(x0_d)+(l/(2*I))*(fr-fl) # omega 3
+    x_d = [x0_d,x1_d,x2_d, x3_d]
     return x_d
 
 sol_x = odeint(dif_eq , x , t)
