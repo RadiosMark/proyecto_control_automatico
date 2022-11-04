@@ -3,11 +3,13 @@ from numpy import *
 import time 
 from scipy.integrate import odeint
 
+
+# definimos variables globales
 g = 9.81
 ti = 0
 time_scaling = 1.0
 
-class UAV:
+class UAV:  #------------------- se define la clase del drone UAV con sus parámetros (la mayoria por enunciado/punto de equilibrio) --------------------------
     def __init__(self, mira):
         self.pos = [400, 400]
         self.theta = pi/2
@@ -25,9 +27,16 @@ class UAV:
         self.ti = 0
         self.mira = mira
 
-    def dif_eq(self, x, t):
+        ## parámetros para modo automático
+        self.auto = False
+        self. llego = False
+        self.vertical = 'Arriba'
+        self.horizontal = 'Izquierda'
+        self.counter = False
 
-        ## calculamos los fr y fl
+    def dif_eq(self, x, t):  ## se define el sistema de edos que se ocupará en el comando de odeint
+
+        ## calculamos los fr y fl dados u1 y u2
         nrow1 = [1, 1]
         nrow2 = [self.long_brazo/2, -self.long_brazo/2]
         matrix = array([nrow1, nrow2])
@@ -46,13 +55,12 @@ class UAV:
 
         return multiply(time_scaling, [xd0, xd1, xd2, xd3, xd4, xd5])
 
-    def init(self):
+    def init(self): ## este es el metodo por defecto que inicializa y actualiza la posción de 'x' e 'y' y 'theta'
 
         Ts = time.time() - self.ti
         x = array([self.pos[0], self.pos[1], self.theta, self.U, self.V, self.w])
         t = linspace(0, Ts, 2)
         self.ti = time.time()
-
 
         sol = odeint(self.dif_eq, x, t)
         self.pos[0] = sol[-1, 0]
@@ -62,18 +70,18 @@ class UAV:
         self.V = sol[-1,4]
         self.w = sol[-1,5]
 
-    def brazo_derecho(self):
+    def brazo_derecho(self):  # manejo de la posición del brazo derecho del uav
         x_d = sin(self.theta)
         y_d = cos(self.theta)
         return(self.pos[0]+x_d*self.long_brazo*50, (800-self.pos[1])+y_d*self.long_brazo*50)
 
 
-    def brazo_izquierdo(self):
+    def brazo_izquierdo(self): # manejo de la posición del izqyuierdo derecho del uav
         x_d = sin(pi + self.theta)
         y_d = cos(pi + self.theta)
         return(self.pos[0]+x_d*self.long_brazo*50, (800-self.pos[1])+y_d*self.long_brazo*50)
 
-    def draw(self, dest):
+    def draw(self, dest): # se dibuja UAV con sus brazos y la mira
 
         x = self.pos[0]
         y = self.pos[1]
@@ -87,16 +95,43 @@ class UAV:
         ### imprimer la mira
         self.mira.draw(dest)
 
-    def freno_emergencia(self):
+    def freno_emergencia(self): ## dejá todo en el punto de equilibrio
         self.u1 = 10*g
         self.u2 = 0
         self.theta = pi/2
         self.U = 0
         self.V = 0
+    
+    def automatico(self):  # en proceso
+        if self.llego == False:
+            if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Arriba':
+                self.u1 = 1000
+            if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Arriba':
+                self.llego = True
+                self.freno_emergencia()
+            if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Abajo':
+                self.u1 = -1000
+            if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Abajo':
+                self.llego = True
+                self.freno_emergencia()
+            if self.pos[0] > self.mira.pos[0] and self.horizontal == 'Izquierda':
+                if self.counter == False:
+                    self.u2 =30
+                    self.counter = True
+                elif self.counter == True:
+                    self.u2 = -25
+                    self.counter = False
+            if self.pos[0] < self.mira.pos[0] and self.horizontal == 'Izquierda':
+                self.llego = True
+                self.freno_emergencia()
+            if self.pos[0] < self.mira.pos[0] and self.horizontal == 'Derecha':
+                self.u2 += -20
+            if self.pos[0] > self.mira.pos[0] and self.horizontal == 'Derecha':
+                self.llego = True
+                self.freno_emergencia()
 
 
-
-class Mira():
+class Mira(): #definimos el objeto mira; que se relaciona con el modo automático del UAV
     def __init__(self):
         self.pos = [200, 200]
 
@@ -104,39 +139,57 @@ class Mira():
         pygame.draw.line(dest, (255,255,255), (self.pos[0]-20, self.pos[1]),(self.pos[0]+20, self.pos[1]))
         pygame.draw.line(dest, (255,255,255), (self.pos[0], self.pos[1]-20),(self.pos[0], self.pos[1]+20))
 
-def main():
+def main(): ## desde aquí se ejecuta el programa
     pygame.init()
     clock = pygame.time.Clock()
-    ventana = pygame.display.set_mode((800 ,800))
-    simulacion = True
+    ventana = pygame.display.set_mode((800 ,800)) #ventana de 800p por 800p
+    simulacion = True # condicion de simulación para el while
 
-    mira = Mira()
-    uav = UAV(mira)
-    uav.init()
+    mira = Mira() #instanciamos mira
+    uav = UAV(mira) #instanciamos nuestro UAV
+    uav.init() # incializamos las condiciones iniciales
+    conteo = 0
     while simulacion:
-        for event in pygame.event.get():
+        for event in pygame.event.get():  # inputs del teclado / mouse
             if event.type == pygame.MOUSEBUTTONDOWN:  ##  reconoce el input del mouse
                 mira.pos[0] = event.pos[0]  #cambia la posición en x de la mira 
                 mira.pos[1] = event.pos[1]  #cambia la posición en y de la mira 
+                uav.llego = False
+                if mira.pos[1] < (800 - uav.pos[1]):
+                    uav.vertical = 'Arriba'
+                    print(uav.vertical)
+                if mira.pos[1] > (800 - uav.pos[1]):
+                    uav.vertical = 'Abajo'
+                    print(uav.vertical)
+                if mira.pos[0] <uav.pos[0]:
+                    uav.horizontal = 'Izquierda'
+                if mira.pos[0] > uav.pos[0]:
+                    uav.horizontal = 'Derecha'
             if event.type == pygame.QUIT:
                 simulacion = False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
+                if event.key == pygame.K_UP and uav.auto == False:
                     uav.u1 +=2500
-                if event.key == pygame.K_DOWN:
+                if event.key == pygame.K_DOWN and uav.auto == False:
                     uav.u1 -=2500
-                if event.key == pygame.K_LEFT:
+                if event.key == pygame.K_LEFT and uav.auto == False:
                     uav.u2 +=20
-                if event.key == pygame.K_RIGHT:
+                if event.key == pygame.K_RIGHT and uav.auto == False:
                     uav.u2 -= 20
                 if event.key == pygame.K_s:
                     uav.freno_emergencia()
+                if event.key == pygame.K_a:
+                    if conteo == 0:
+                        uav.auto = True
+                        print("Auto Mode Activado")
+        
+        if uav.auto:
+            uav.automatico()
 
-        uav.init()
+        uav.init() # actualiza las componentes del UAV
         ventana.fill((0,0,0))
-        uav.draw(ventana)
+        uav.draw(ventana) #dibuja el UAV en la pantalla
         pygame.display.flip()
-        #clock.tick(60)
     pygame.quit()
 
 if __name__=="__main__":
