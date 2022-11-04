@@ -42,7 +42,7 @@ class UAV:
         xd2 = x[5]
         xd3 = x[5]*x[4]+(1/self.masa)*(fr+fl)-((self.bu*x[3])/self.masa)-g*sin(x[2])
         xd4 = -x[5]*x[4]-((self.bv*x[4])/self.masa)-g*cos(x[2])
-        xd5 = ((fr-fl)/(self.iner))-(self.bw/self.iner)*self.w
+        xd5 = ((fr-fl)/(self.iner))-(self.bw/self.iner)*x[5]
 
         return multiply(time_scaling, [xd0, xd1, xd2, xd3, xd4, xd5])
 
@@ -52,10 +52,9 @@ class UAV:
         x = array([self.pos[0], self.pos[1], self.theta, self.U, self.V, self.w])
         t = linspace(0, Ts, 2)
         self.ti = time.time()
-        print("el tiempo es", Ts)
+
 
         sol = odeint(self.dif_eq, x, t)
-        print(sol[-1])
         self.pos[0] = sol[-1, 0]
         self.pos[1] = sol[-1,1]
         self.theta = sol[-1,2]
@@ -64,10 +63,15 @@ class UAV:
         self.w = sol[-1,5]
 
     def brazo_derecho(self):
-        return(self.pos[0]-self.long_brazo*50, (800-self.pos[1]))
+        x_d = sin(self.theta)
+        y_d = cos(self.theta)
+        return(self.pos[0]+x_d*self.long_brazo*50, (800-self.pos[1])+y_d*self.long_brazo*50)
+
 
     def brazo_izquierdo(self):
-        return(self.pos[0]+self.long_brazo*50, (800-self.pos[1]))
+        x_d = sin(pi + self.theta)
+        y_d = cos(pi + self.theta)
+        return(self.pos[0]+x_d*self.long_brazo*50, (800-self.pos[1])+y_d*self.long_brazo*50)
 
     def draw(self, dest):
 
@@ -82,6 +86,15 @@ class UAV:
 
         ### imprimer la mira
         self.mira.draw(dest)
+
+    def freno_emergencia(self):
+        self.u1 = 10*g
+        self.u2 = 0
+        self.theta = pi/2
+        self.U = 0
+        self.V = 0
+
+
 
 class Mira():
     def __init__(self):
@@ -109,13 +122,15 @@ def main():
                 simulacion = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    uav.u1 = 2000
+                    uav.u1 +=2500
                 if event.key == pygame.K_DOWN:
-                    uav.u1 = -2000
+                    uav.u1 -=2500
                 if event.key == pygame.K_LEFT:
-                    uav.u2 += 0.1
+                    uav.u2 +=20
                 if event.key == pygame.K_RIGHT:
-                    uav.u2 += 0.1
+                    uav.u2 -= 20
+                if event.key == pygame.K_s:
+                    uav.freno_emergencia()
 
         uav.init()
         ventana.fill((0,0,0))
