@@ -8,9 +8,15 @@ from scipy.integrate import odeint
 g = 9.81
 ti = 0
 time_scaling = 1.0
+txt = 'ejemplo.txt'
+U1 = []
+U2 = []
+X = []
+Y = []
+Theta = []
 
 class UAV:  #------------------- se define la clase del drone UAV con sus parámetros (la mayoria por enunciado/punto de equilibrio) --------------------------
-    def __init__(self, mira):
+    def __init__(self, mira, ruta):
         self.pos = [400, 400]
         self.theta = pi/2
         self.long_brazo = 0.5
@@ -27,6 +33,9 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
         self.ti = 0
         self.mira = mira
 
+        ## suave
+        self.suave = False
+
         ## parámetros para modo automático
         self.auto = False
         self. llego_vertical = False
@@ -34,6 +43,12 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
         self.vertical = 'Arriba'
         self.horizontal = 'Izquierda'
         self.counter = False
+
+        #trayectoria
+        self.trayecto = False
+        self.ruta = ruta
+        self.camino = []
+        self.lugar_lista = 0
 
     def dif_eq(self, x, t):  ## se define el sistema de edos que se ocupará en el comando de odeint
 
@@ -96,6 +111,16 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
         ### imprimer la mira
         self.mira.draw(dest)
 
+    def freno_suave(self):
+        if self.u1 > 0:
+            self.u1 -=(2500+self.masa*g) 
+        elif self.u1 < 0:
+            self.u1 +=(2500-self.masa*g) 
+
+        if -10 <self.u1 < 10:
+            self.u1 = self.masa*g
+            self.suave = False
+
     def freno_emergencia(self): ## dejá todo en el punto de equilibrio
         self.u1 = 10*g
         self.u2 = 0
@@ -105,11 +130,11 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
     
     def automatico(self):  # en proceso
         if self.llego_vertical == False or self.llego_vertical == False:
-            if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Arriba':
+            if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Arriba' and self.llego_vertical == False :
                 self.u1 = 1000
             if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Arriba':
                 self.llego_vertical = True
-            if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Abajo':
+            if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Abajo'and self.llego_vertical == False :
                 self.u1 = -1000
             if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Abajo':
                 self.llego_vertical = True
@@ -154,6 +179,21 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
             self.freno_emergencia()
             print("llegamos")
         
+    def añadir_lista(self):  ### metodo para añadir la lista con objetivos Ej: [[120, 0], [34, 50], [17, 300]]
+        with open(self.ruta, 'r', encoding='utf-8') as file:
+            lineas = file.read().splitlines()
+            for linea in lineas:
+                linea = linea.split(',')
+                self.camino.append([int(linea[0]), int(linea[1])]) #queda guardada dentro de la variable del objeto.
+    
+    def recorrido(self):
+        self.pos[0] = self.camino[self.lugar_lista][0]
+        self.pos[1] = self.camino[self.lugar_lista][1]
+        self.lugar_lista+= 1
+        print(self.pos)
+        if self.lugar_lista == len(self.camino):
+            self.trayecto = False
+        
 
 
 class Mira(): #definimos el objeto mira; que se relaciona con el modo automático del UAV
@@ -163,6 +203,8 @@ class Mira(): #definimos el objeto mira; que se relaciona con el modo automátic
     def draw(self, dest):
         pygame.draw.line(dest, (255,255,255), (self.pos[0]-20, self.pos[1]),(self.pos[0]+20, self.pos[1]))
         pygame.draw.line(dest, (255,255,255), (self.pos[0], self.pos[1]-20),(self.pos[0], self.pos[1]+20))
+    
+    
 
 def main(): ## desde aquí se ejecuta el programa
     pygame.init()
@@ -171,7 +213,8 @@ def main(): ## desde aquí se ejecuta el programa
     simulacion = True # condicion de simulación para el while
 
     mira = Mira() #instanciamos mira
-    uav = UAV(mira) #instanciamos nuestro UAV
+    uav = UAV(mira,txt) #instanciamos nuestro UAV
+    uav.añadir_lista()
     uav.init() # incializamos las condiciones iniciales
     conteo = 0
     while simulacion:
@@ -202,13 +245,17 @@ def main(): ## desde aquí se ejecuta el programa
                     uav.u2 +=20
                 if event.key == pygame.K_RIGHT and uav.auto == False:
                     uav.u2 -= 20
-                if event.key == pygame.K_s:
-                    uav.freno_emergencia()
+                #if event.key == pygame.K_s:
+                #    uav.freno_emergencia()
                 if event.key == pygame.K_a:
                     if conteo == 0:
                         uav.auto = True
                         print("Auto Mode Activado")
-        
+                if event.key == pygame.K_s:
+                    uav.suave = True
+
+        if uav.suave:
+            uav.freno_suave()
         if uav.auto:
             uav.automatico()
 
