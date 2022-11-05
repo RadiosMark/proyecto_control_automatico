@@ -29,7 +29,8 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
 
         ## parámetros para modo automático
         self.auto = False
-        self. llego = False
+        self. llego_vertical = False
+        self.llego_horizontal = False
         self.vertical = 'Arriba'
         self.horizontal = 'Izquierda'
         self.counter = False
@@ -103,32 +104,56 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
         self.V = 0
     
     def automatico(self):  # en proceso
-        if self.llego == False:
+        if self.llego_vertical == False or self.llego_vertical == False:
             if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Arriba':
                 self.u1 = 1000
             if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Arriba':
-                self.llego = True
-                self.freno_emergencia()
+                self.llego_vertical = True
             if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Abajo':
                 self.u1 = -1000
             if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Abajo':
-                self.llego = True
-                self.freno_emergencia()
-            if self.pos[0] > self.mira.pos[0] and self.horizontal == 'Izquierda':
-                if self.counter == False:
+                self.llego_vertical = True
+            if self.pos[0] > self.mira.pos[0] and self.horizontal == 'Izquierda' and self.vertical == 'Abajo':
+                if self.pos[0] - self.mira.pos[0] < 10:
+                    self.u2 = 10
+                    print("estabilizando")
+                elif self.counter == False:
+                    self.u2 =-30
+                    self.counter = True
+                elif self.counter == True:
+                    self.u2 = 25
+                    self.counter = False    
+            elif self.pos[0] > self.mira.pos[0] and self.horizontal == 'Izquierda':
+                if self.pos[0] - self.mira.pos[0] < 10:
+                    if self.counter == False:
+                        self.u2 = 10
+                    elif self.counter == True:
+                        self.u2 = -5
+                    print("estabilizando")
+                elif self.counter == False:
                     self.u2 =30
                     self.counter = True
                 elif self.counter == True:
                     self.u2 = -25
                     self.counter = False
             if self.pos[0] < self.mira.pos[0] and self.horizontal == 'Izquierda':
-                self.llego = True
-                self.freno_emergencia()
+                self.llego_horizontal = True
             if self.pos[0] < self.mira.pos[0] and self.horizontal == 'Derecha':
-                self.u2 += -20
+                if self.mira.pos[0] - self.pos[0] < 10:
+                    self.u2 = 10
+                    print("estabilizando")
+                elif self.counter == False:
+                    self.u2 =-30
+                    self.counter = True
+                elif self.counter == True:
+                    self.u2 = 25
+                    self.counter = False
             if self.pos[0] > self.mira.pos[0] and self.horizontal == 'Derecha':
-                self.llego = True
-                self.freno_emergencia()
+                self.llego_horizontal = True
+        elif self.llego_horizontal== True and self.llego_vertical == True:
+            self.freno_emergencia()
+            print("llegamos")
+        
 
 
 class Mira(): #definimos el objeto mira; que se relaciona con el modo automático del UAV
@@ -154,7 +179,8 @@ def main(): ## desde aquí se ejecuta el programa
             if event.type == pygame.MOUSEBUTTONDOWN:  ##  reconoce el input del mouse
                 mira.pos[0] = event.pos[0]  #cambia la posición en x de la mira 
                 mira.pos[1] = event.pos[1]  #cambia la posición en y de la mira 
-                uav.llego = False
+                uav.llego_vertical = False
+                uav.llego_horizontal = False
                 if mira.pos[1] < (800 - uav.pos[1]):
                     uav.vertical = 'Arriba'
                     print(uav.vertical)
