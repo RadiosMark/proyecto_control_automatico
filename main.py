@@ -130,32 +130,38 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
             self.u1 = self.masa*g
             self.suave_u2 = False
 
-
-    def freno_emergencia(self): ## dejá todo en el punto de equilibrio
-        self.u1 = 10*g
-        self.u2 = 0
-        self.theta = pi/2
-        self.U = 0
-        self.V = 0
     
     def automatico(self):  # en proceso
-        if self.llego_vertical == False or self.llego_vertical == False:
+        if self.llego_vertical == False or self.llego_horizontal == False:
             if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Arriba' and self.llego_vertical == False :
-                self.u1 = 1000
+                self.u1 =+1500
             if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Arriba':
                 self.llego_vertical = True
+                #self.freno_suave()
+            if (800-self.pos[1]) -100 < (self.mira.pos[1]) and self.vertical == 'Abajo' and self.llego_vertical == False :
                 self.freno_suave()
-            if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Abajo'and self.llego_vertical == False :
-                self.u1 = -1000
-            if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Abajo':
-                self.llego_vertical = True
+                self.u1 = -1500
+            if (800-self.pos[1]) -100 > (self.mira.pos[1]) and self.vertical == 'Abajo':
                 self.freno_suave()
+                self.vertical = 'Arriba'
+                if self.mira.pos[0] < self.pos[0]:
+                    self.horizontal = 'Izquierda'
+                    self.u2 += 15
+                elif self.mira.pos[0] > self.pos[0]:
+                    self.horizontal = 'Derecha'
+                    self.u2 -= 15
+            if self.theta > arctan((self.pos[1]-self.mira.pos[1])/(+self.mira.pos[0]-self.pos[0])) and self.horizontal == 'Derecha' and self.vertical == 'Arriba' and self.llego_horizontal == False:
+                self.u2 -= 10
+                print("porque no entra aquí")
+            if self.theta < arctan((self.pos[1]-self.mira.pos[1])/(+self.mira.pos[0]-self.pos[0])) and self.horizontal == 'Derecha' and self.vertical == 'Arriba' and self.llego_horizontal == False:
+                self.u2 = 0
+            if self.theta < arctan((-self.mira.pos[0]+self.pos[0])/(self.pos[1]-self.mira.pos[1])) + pi/2 and self.horizontal == 'Izquierda'and self.vertical == 'Arriba'  and self.llego_horizontal == False:
+                self.u2 += 10
+                print("porque no entra aquí")
+            if self.theta > arctan((-self.mira.pos[0]+self.pos[0])/(self.pos[1]-self.mira.pos[1])) + pi/2  and self.horizontal == 'Izquierda' and self.vertical == 'Arriba' and self.llego_horizontal == False:
+                self.u2 = 0
             
-            if (self.pos[1]-self.mira.pos[1])/(self.mira.pos[0]-self.pos[0]) > tan(self.theta+pi):
-                self.u2 -= 20
-            elif (self.pos[1]-self.mira.pos[1])/(self.mira.pos[0]-self.pos[0]) < tan(self.theta+pi):
-                self.u2 +=10
-        
+   
     def añadir_lista(self):  ### metodo para añadir la lista con objetivos Ej: [[120, 0], [34, 50], [17, 300]]
         with open(self.ruta, 'r', encoding='utf-8') as file:
             lineas = file.read().splitlines()
@@ -172,7 +178,6 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
             self.trayecto = False
         
 
-
 class Mira(): #definimos el objeto mira; que se relaciona con el modo automático del UAV
     def __init__(self):
         self.pos = [200, 200]
@@ -182,10 +187,8 @@ class Mira(): #definimos el objeto mira; que se relaciona con el modo automátic
         pygame.draw.line(dest, (255,255,255), (self.pos[0], self.pos[1]-20),(self.pos[0], self.pos[1]+20))
     
     
-
 def main(): ## desde aquí se ejecuta el programa
     pygame.init()
-    clock = pygame.time.Clock()
     ventana = pygame.display.set_mode((800 ,800)) #ventana de 800p por 800p
     simulacion = True # condicion de simulación para el while
 
@@ -193,7 +196,6 @@ def main(): ## desde aquí se ejecuta el programa
     uav = UAV(mira,txt) #instanciamos nuestro UAV
     uav.añadir_lista()
     uav.init() # incializamos las condiciones iniciales
-    conteo = 0
     while simulacion:
         for event in pygame.event.get():  # inputs del teclado / mouse
             if event.type == pygame.MOUSEBUTTONDOWN:  ##  reconoce el input del mouse
@@ -203,11 +205,9 @@ def main(): ## desde aquí se ejecuta el programa
                 uav.llego_horizontal = False
                 if mira.pos[1] < (800 - uav.pos[1]):
                     uav.vertical = 'Arriba'
-                    print(uav.vertical)
                 if mira.pos[1] > (800 - uav.pos[1]):
                     uav.vertical = 'Abajo'
-                    print(uav.vertical)
-                if mira.pos[0] <uav.pos[0]:
+                if mira.pos[0] < uav.pos[0]:
                     uav.horizontal = 'Izquierda'
                 if mira.pos[0] > uav.pos[0]:
                     uav.horizontal = 'Derecha'
@@ -222,15 +222,24 @@ def main(): ## desde aquí se ejecuta el programa
                     uav.u2 +=20
                 if event.key == pygame.K_RIGHT and uav.auto == False:
                     uav.u2 -= 20
-                #if event.key == pygame.K_s:
-                #    uav.freno_emergencia()
                 if event.key == pygame.K_a:
-                    if conteo == 0:
                         uav.auto = True
                         print("Auto Mode Activado")
+                        uav.llego_vertical = False
+                        uav.llego_horizontal = False
+                        if mira.pos[1] < (800 - uav.pos[1]):
+                            uav.vertical = 'Arriba'
+                        if mira.pos[1] > (800 - uav.pos[1]):
+                            uav.vertical = 'Abajo'
+                        if mira.pos[0] < uav.pos[0]:
+                            uav.horizontal = 'Izquierda'
+                        if mira.pos[0] > uav.pos[0]:
+                            uav.horizontal = 'Derecha'
+                
                 if event.key == pygame.K_s:
                     uav.suave_u1 = True
                     uav.suave_u2 = True
+
 
         if uav.suave_u1 or uav.suave_u2:
             uav.freno_suave()
