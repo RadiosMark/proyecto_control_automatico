@@ -34,7 +34,8 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
         self.mira = mira
 
         ## suave
-        self.suave = False
+        self.suave_u1 = False
+        self.suave_u2 = False
 
         ## parámetros para modo automático
         self.auto = False
@@ -116,10 +117,19 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
             self.u1 -=(2500+self.masa*g) 
         elif self.u1 < 0:
             self.u1 +=(2500-self.masa*g) 
-
         if -10 <self.u1 < 10:
             self.u1 = self.masa*g
-            self.suave = False
+            self.suave_u1 = False
+        
+        if sin(pi + self.theta)> 0 and cos(pi + self.theta)< 0:
+            self.u2 += 20
+        elif sin(pi + self.theta)> 0 and cos(pi + self.theta) > 0:
+            self.u2 -= 20
+        if -0.01 <cos(self.theta) < 0.01:
+            self.u2 = 0
+            self.u1 = self.masa*g
+            self.suave_u2 = False
+
 
     def freno_emergencia(self): ## dejá todo en el punto de equilibrio
         self.u1 = 10*g
@@ -252,9 +262,10 @@ def main(): ## desde aquí se ejecuta el programa
                         uav.auto = True
                         print("Auto Mode Activado")
                 if event.key == pygame.K_s:
-                    uav.suave = True
+                    uav.suave_u1 = True
+                    uav.suave_u2 = True
 
-        if uav.suave:
+        if uav.suave_u1 or uav.suave_u2:
             uav.freno_suave()
         if uav.auto:
             uav.automatico()
