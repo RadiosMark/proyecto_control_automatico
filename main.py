@@ -144,50 +144,17 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
                 self.u1 = 1000
             if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Arriba':
                 self.llego_vertical = True
+                self.freno_suave()
             if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Abajo'and self.llego_vertical == False :
                 self.u1 = -1000
             if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Abajo':
                 self.llego_vertical = True
-            if self.pos[0] > self.mira.pos[0] and self.horizontal == 'Izquierda' and self.vertical == 'Abajo':
-                if self.pos[0] - self.mira.pos[0] < 10:
-                    self.u2 = 10
-                    print("estabilizando")
-                elif self.counter == False:
-                    self.u2 =-30
-                    self.counter = True
-                elif self.counter == True:
-                    self.u2 = 25
-                    self.counter = False    
-            elif self.pos[0] > self.mira.pos[0] and self.horizontal == 'Izquierda':
-                if self.pos[0] - self.mira.pos[0] < 10:
-                    if self.counter == False:
-                        self.u2 = 10
-                    elif self.counter == True:
-                        self.u2 = -5
-                    print("estabilizando")
-                elif self.counter == False:
-                    self.u2 =30
-                    self.counter = True
-                elif self.counter == True:
-                    self.u2 = -25
-                    self.counter = False
-            if self.pos[0] < self.mira.pos[0] and self.horizontal == 'Izquierda':
-                self.llego_horizontal = True
-            if self.pos[0] < self.mira.pos[0] and self.horizontal == 'Derecha':
-                if self.mira.pos[0] - self.pos[0] < 10:
-                    self.u2 = 10
-                    print("estabilizando")
-                elif self.counter == False:
-                    self.u2 =-30
-                    self.counter = True
-                elif self.counter == True:
-                    self.u2 = 25
-                    self.counter = False
-            if self.pos[0] > self.mira.pos[0] and self.horizontal == 'Derecha':
-                self.llego_horizontal = True
-        elif self.llego_horizontal== True and self.llego_vertical == True:
-            self.freno_emergencia()
-            print("llegamos")
+                self.freno_suave()
+            
+            if (self.pos[1]-self.mira.pos[1])/(self.mira.pos[0]-self.pos[0]) > tan(self.theta+pi):
+                self.u2 -= 20
+            elif (self.pos[1]-self.mira.pos[1])/(self.mira.pos[0]-self.pos[0]) < tan(self.theta+pi):
+                self.u2 +=10
         
     def añadir_lista(self):  ### metodo para añadir la lista con objetivos Ej: [[120, 0], [34, 50], [17, 300]]
         with open(self.ruta, 'r', encoding='utf-8') as file:
