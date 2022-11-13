@@ -2,18 +2,20 @@ import pygame
 from numpy import *
 import time 
 from scipy.integrate import odeint
+from variables import ruta_x, ruta_y, ruta_theta, ruta_u1, ruta_u2
 
 
 # definimos variables globales
 g = 9.81
 ti = 0
 time_scaling = 1.0
-txt = 'ejemplo.txt'
+txt = 'ejemplo.txt'  ## contiene el formato de coordenadas para cargar las trayectorias
 U1 = []
 U2 = []
 X = []
 Y = []
 Theta = []
+
 
 class UAV:  #------------------- se define la clase del drone UAV con sus parámetros (la mayoria por enunciado/punto de equilibrio) --------------------------
     def __init__(self, mira, ruta):
@@ -112,8 +114,8 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
         ### imprimer la mira
         self.mira.draw(dest)
 
-    def freno_suave(self):
-        if self.u1 > 0:
+    def freno_suave(self): ### se define el metodo para el frenado suave
+        if self.u1 > 0:  #### esta parte se hace cargo de frenar la variable u1
             self.u1 -=(2500+self.masa*g) 
         elif self.u1 < 0:
             self.u1 +=(2500-self.masa*g) 
@@ -121,6 +123,7 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
             self.u1 = self.masa*g
             self.suave_u1 = False
         
+        #### esta parte se hace cargo de frenar la variable u2
         if sin(pi + self.theta)> 0 and cos(pi + self.theta)< 0:
             self.u2 += 20
         elif sin(pi + self.theta)> 0 and cos(pi + self.theta) > 0:
@@ -130,34 +133,31 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
             self.u1 = self.masa*g
             self.suave_u2 = False
 
-    
-    def automatico(self):  # en proceso
+    def automatico(self):  # instrucciones para seguir la mira (no se pudo implementar completo)
         if self.llego_vertical == False or self.llego_horizontal == False:
             if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Arriba' and self.llego_vertical == False :
-                self.u1 =+1500
+                self.u1 = 1500
             if (800-self.pos[1]) < (self.mira.pos[1]) and self.vertical == 'Arriba':
+                self.freno_suave()
                 self.llego_vertical = True
-                #self.freno_suave()
-            if (800-self.pos[1]) -100 < (self.mira.pos[1]) and self.vertical == 'Abajo' and self.llego_vertical == False :
+            if (800-self.pos[1])  < (self.mira.pos[1]) and self.vertical == 'Abajo' and self.llego_vertical == False :
                 self.freno_suave()
                 self.u1 = -1500
-            if (800-self.pos[1]) -100 > (self.mira.pos[1]) and self.vertical == 'Abajo':
+            if (800-self.pos[1]) > (self.mira.pos[1]) and self.vertical == 'Abajo':
                 self.freno_suave()
-                self.vertical = 'Arriba'
-                if self.mira.pos[0] < self.pos[0]:
-                    self.horizontal = 'Izquierda'
-                    self.u2 += 15
-                elif self.mira.pos[0] > self.pos[0]:
-                    self.horizontal = 'Derecha'
-                    self.u2 -= 15
+                #self.vertical = 'Arriba'
+                #if self.mira.pos[0] < self.pos[0]:
+                #    self.horizontal = 'Izquierda'
+                #    self.u2 += 30
+                #elif self.mira.pos[0] > self.pos[0]:
+                #    self.horizontal = 'Derecha'
+                #    self.u2 -= 30
             if self.theta > arctan((self.pos[1]-self.mira.pos[1])/(+self.mira.pos[0]-self.pos[0])) and self.horizontal == 'Derecha' and self.vertical == 'Arriba' and self.llego_horizontal == False:
                 self.u2 -= 10
-                print("porque no entra aquí")
             if self.theta < arctan((self.pos[1]-self.mira.pos[1])/(+self.mira.pos[0]-self.pos[0])) and self.horizontal == 'Derecha' and self.vertical == 'Arriba' and self.llego_horizontal == False:
                 self.u2 = 0
             if self.theta < arctan((-self.mira.pos[0]+self.pos[0])/(self.pos[1]-self.mira.pos[1])) + pi/2 and self.horizontal == 'Izquierda'and self.vertical == 'Arriba'  and self.llego_horizontal == False:
                 self.u2 += 10
-                print("porque no entra aquí")
             if self.theta > arctan((-self.mira.pos[0]+self.pos[0])/(self.pos[1]-self.mira.pos[1])) + pi/2  and self.horizontal == 'Izquierda' and self.vertical == 'Arriba' and self.llego_horizontal == False:
                 self.u2 = 0
             
@@ -169,11 +169,10 @@ class UAV:  #------------------- se define la clase del drone UAV con sus parám
                 linea = linea.split(',')
                 self.camino.append([int(linea[0]), int(linea[1])]) #queda guardada dentro de la variable del objeto.
     
-    def recorrido(self):
-        self.pos[0] = self.camino[self.lugar_lista][0]
-        self.pos[1] = self.camino[self.lugar_lista][1]
+    def recorrido(self): ### se pudo implementar, la mira se mueve segun las coordenadas en el ejemplo.txt pero como no funciona del
+        self.mira.pos[0] = self.camino[self.lugar_lista][0] ## todo bien el seguimiento, no pude terminarlo.
+        self.mira.pos[1] = self.camino[self.lugar_lista][1]
         self.lugar_lista+= 1
-        print(self.pos)
         if self.lugar_lista == len(self.camino):
             self.trayecto = False
         
@@ -185,6 +184,22 @@ class Mira(): #definimos el objeto mira; que se relaciona con el modo automátic
     def draw(self, dest):
         pygame.draw.line(dest, (255,255,255), (self.pos[0]-20, self.pos[1]),(self.pos[0]+20, self.pos[1]))
         pygame.draw.line(dest, (255,255,255), (self.pos[0], self.pos[1]-20),(self.pos[0], self.pos[1]+20))
+
+
+#### almacenadora de datos
+
+def almacen(x_t , y_t ,theta_t,u1_t,u2_t):
+    global X, Y, Theta ,U1, U2
+    X.append(x_t)
+    Y.append(y_t)
+    Theta.append(theta_t)
+    U1.append(u1_t)
+    U2.append(u2_t)
+
+def base_txt(ruta, lista):
+    with open(ruta, 'w', encoding='utf-8') as txt:
+        for item in lista:
+            txt.write("%f\n" % item)
     
     
 def main(): ## desde aquí se ejecuta el programa
@@ -196,6 +211,7 @@ def main(): ## desde aquí se ejecuta el programa
     uav = UAV(mira,txt) #instanciamos nuestro UAV
     uav.añadir_lista()
     uav.init() # incializamos las condiciones iniciales
+
     while simulacion:
         for event in pygame.event.get():  # inputs del teclado / mouse
             if event.type == pygame.MOUSEBUTTONDOWN:  ##  reconoce el input del mouse
@@ -203,6 +219,8 @@ def main(): ## desde aquí se ejecuta el programa
                 mira.pos[1] = event.pos[1]  #cambia la posición en y de la mira 
                 uav.llego_vertical = False
                 uav.llego_horizontal = False
+
+                ### esto corresponden a strings indicativos para la parte automática
                 if mira.pos[1] < (800 - uav.pos[1]):
                     uav.vertical = 'Arriba'
                 if mira.pos[1] > (800 - uav.pos[1]):
@@ -213,16 +231,16 @@ def main(): ## desde aquí se ejecuta el programa
                     uav.horizontal = 'Derecha'
             if event.type == pygame.QUIT:
                 simulacion = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP and uav.auto == False:
+            if event.type == pygame.KEYDOWN:  ## inputs de teclado 
+                if event.key == pygame.K_UP and uav.auto == False: ##flecha hacia arriba aumenta u1
                     uav.u1 +=2500
-                if event.key == pygame.K_DOWN and uav.auto == False:
+                if event.key == pygame.K_DOWN and uav.auto == False: ##flecha hacia arriba disminuye u1
                     uav.u1 -=2500
-                if event.key == pygame.K_LEFT and uav.auto == False:
+                if event.key == pygame.K_LEFT and uav.auto == False: ## flecha hacia la izquierda disminuye u2
                     uav.u2 +=20
-                if event.key == pygame.K_RIGHT and uav.auto == False:
+                if event.key == pygame.K_RIGHT and uav.auto == False:## flecha hacia la derecha aumenta u2
                     uav.u2 -= 20
-                if event.key == pygame.K_a:
+                if event.key == pygame.K_a:  ## modo automático
                         uav.auto = True
                         print("Auto Mode Activado")
                         uav.llego_vertical = False
@@ -239,21 +257,35 @@ def main(): ## desde aquí se ejecuta el programa
                 if event.key == pygame.K_s:
                     uav.suave_u1 = True
                     uav.suave_u2 = True
+                if event.key == pygame.K_t:
+                    uav.trayecto = True
+                    uav.auto = True
 
 
+        #### comprobaciones de los modos activados
+        if uav.trayecto:
+            uav.recorrido()
         if uav.suave_u1 or uav.suave_u2:
             uav.freno_suave()
         if uav.auto:
             uav.automatico()
+        if uav.trayecto:
+            uav.recorrido()
 
         uav.init() # actualiza las componentes del UAV
         ventana.fill((0,0,0))
         uav.draw(ventana) #dibuja el UAV en la pantalla
+        almacen(uav.pos[0], uav.pos[1], uav.theta, uav.u1, uav.u2) #guarda los cambios de las variables en listas
         pygame.display.flip()
     pygame.quit()
 
+    #### guardado de datos
+    base_txt(ruta_x, X)   
+    base_txt(ruta_y, Y)
+    base_txt(ruta_theta, Theta)
+    base_txt(ruta_u1, U1)
+    base_txt(ruta_u2, U2)
+
+
 if __name__=="__main__":
     main()
-
-
-     
