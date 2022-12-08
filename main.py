@@ -10,8 +10,8 @@ g = 9.81
 ti = 0
 time_scaling = 1.0
 txt = 'ejemplo.txt'  ## contiene el formato de coordenadas para cargar las trayectorias
-U1 = []
-U2 = []
+F = []
+T = []
 X = []
 Y = []
 Theta = []
@@ -189,12 +189,12 @@ class Mira(): #definimos el objeto mira; que se relaciona con el modo automátic
 #### almacenadora de datos
 
 def almacen(x_t , y_t ,theta_t,u1_t,u2_t):
-    global X, Y, Theta ,U1, U2
+    global X, Y, Theta ,F, T
     X.append(x_t)
     Y.append(y_t)
     Theta.append(theta_t)
-    U1.append(u1_t)
-    U2.append(u2_t)
+    F.append(u1_t + u2_t)
+    T.append(u2_t)
 
 def base_txt(ruta, lista):
     with open(ruta, 'w', encoding='utf-8') as txt:
@@ -283,8 +283,8 @@ def main(): ## desde aquí se ejecuta el programa
     base_txt(ruta_x, X)   
     base_txt(ruta_y, Y)
     base_txt(ruta_theta, Theta)
-    base_txt(ruta_u1, U1)
-    base_txt(ruta_u2, U2)
+    base_txt(ruta_u1, F)
+    base_txt(ruta_u2, T)
 
 
 if __name__=="__main__":
